@@ -1,0 +1,13 @@
+# ไม่เอาไฟล์ environment และโฟลเดอร์ venv
+venv/
+.env
+__pycache__/
+*.pyc
+
+# ไม่เอาไฟล์จากระบบ macOS
+.DS_Store
+
+# ไม่เอาไฟล์ผลลัพธ์หรือภาพ
+uploads/
+results/
+results_images/
