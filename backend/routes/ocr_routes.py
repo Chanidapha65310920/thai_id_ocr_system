@@ -1,14 +1,13 @@
 import os
-import json
+import re
 import cv2
 import pytesseract
 import numpy as np
 from flask import Blueprint, request, jsonify
 from database import db
 from database.models import OcrResult, CerResult
-import Levenshtein as L
-import re
 from pathlib import Path
+import Levenshtein as L
 from utils.normalizer import normalize_pred
 
 # ===== PATH CONFIG (macOS) =====
@@ -17,34 +16,6 @@ os.environ["TESSDATA_PREFIX"] = "/usr/local/share/tessdata/"
 
 ocr_bp = Blueprint("ocr_bp", __name__)
 
-# ===== LOAD ROI JSON =====
-BASE = Path(__file__).resolve().parents[1]  # backend/
-ROI_PATH = BASE / "roi.json"
-
-with open(ROI_PATH, encoding="utf-8") as f:
-    ROI_MAP = json.load(f)
-
-# ===== CROP FUNCTION =====
-def crop_by_roi(full_img_bgr, base_name, field):
-    if base_name not in ROI_MAP or field not in ROI_MAP[base_name]:
-        return None
-
-    x1, y1, x2, y2 = ROI_MAP[base_name][field]
-    h, w = full_img_bgr.shape[:2]
-
-    # ✅ ปรับพิกัดให้ปลอดภัย
-    x1, y1 = max(0, int(x1)), max(0, int(y1))
-    x2, y2 = min(w, int(x2)), min(h, int(y2))
-
-    # ✅ ตรวจขนาดก่อน crop (ถ้าพิกัดผิดจะข้าม)
-    if x2 <= x1 or y2 <= y1:
-        print(f"[WARN] Invalid ROI for field '{field}': {x1,y1,x2,y2}")
-        return None
-
-    roi = full_img_bgr[y1:y2, x1:x2]
-    return roi
-
-
 # ===== PREPROCESS (Gaussian + Otsu) =====
 def preprocess_gaussian_otsu(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -52,97 +23,128 @@ def preprocess_gaussian_otsu(img):
     _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return th
 
-# =============== CER ===================
+# ===== CER =====
 def compute_cer(pred: str, truth: str) -> float:
-    """คำนวณ Character Error Rate"""
     pred = re.sub(r"\s+", "", (pred or "").strip())
     truth = re.sub(r"\s+", "", (truth or "").strip())
-
     if len(truth) == 0:
         return 0.0 if len(pred) == 0 else 1.0
-
     return round(L.distance(pred, truth) / len(truth), 4)
 
-# ===== MAIN OCR ROUTE =====
+# ===== OCR ทั้งภาพ + Regex =====
+def extract_fields_from_text(text):
+    data = {}
+
+    # --- ล้างอักขระแปลก ๆ ---
+    text = re.sub(r"[^\u0E00-\u0E7F0-9\s\.\-]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    # =============================
+    # 🔹 1. ดึงเลขบัตรประชาชน (รองรับช่องว่าง)
+    # =============================
+    id_match = re.search(r"(\d\s*){13}", text)
+    if id_match:
+        d = re.sub(r"\s+", "", id_match.group(0))
+        data["id_number"] = d
+    else:
+        # fallback: หาเลขยาว >= 12
+        id_match2 = re.search(r"\d{12,}", text)
+        data["id_number"] = id_match2.group(0) if id_match2 else ""
+
+    # =============================
+    # 🔹 2. ชื่อ-นามสกุล (OCR เพี้ยน)
+    # =============================
+    # แก้กรณี OCR เพี้ยน "ไน. สี." = "น.ส."
+    text_fixed = re.sub(r"ไน\.?\s*สี\.?", "น.ส.", text)
+
+    name_match = re.search(r"(นาย|นางสาว|นาง|น\.ส\.)\s*([ก-๙]+)\s*([ก-๙]+)", text_fixed)
+    if name_match:
+        data["prefix"] = name_match.group(1)
+        data["first_name"] = name_match.group(2)
+        data["last_name"] = name_match.group(3)
+    else:
+        # fuzzy matching prefix
+        cand_prefixes = ["นาย", "นางสาว", "นาง", "น.ส.", "นส", "ไน", "ไน์"]
+        prefix_found = ""
+        for cand in cand_prefixes:
+            if L.ratio(cand, text[:12]) > 0.5:
+                prefix_found = "น.ส." if "ส" in cand or "ไ" in cand else cand
+                break
+        data["prefix"] = prefix_found
+        data["first_name"] = ""
+        data["last_name"] = ""
+
+    # =============================
+    # 🔹 3. วันเกิด (OCR เพี้ยน “ก.ุพ.” → “ก.พ.”)
+    # =============================
+    text_fixed = re.sub(r"ก\.ุพ\.", "ก.พ.", text_fixed)
+    text_fixed = re.sub(r"ก\.ุพ", "ก.พ.", text_fixed)
+
+    dob_match = re.search(
+        r"(\d{1,2}\s*(ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.|มค|เมษา|พฤษภา|มิถุนา|กรกฎา|สิงหา|กันยา|ตุลา|พฤศจิกา|ธันวา)\s*\d{2,4})",
+        text_fixed
+    )
+    data["dob"] = dob_match.group(1) if dob_match else ""
+
+    # =============================
+    # 🔹 4. ที่อยู่
+    # =============================
+    addr_match = re.search(r"(ที่อยู่|บ้านเลขที่)\s*[:\-]?\s*(.*)", text_fixed)
+    if addr_match:
+        data["address"] = addr_match.group(2).strip()
+    else:
+        # fallback: หาคำว่าหมู่/ตำบล/อำเภอ
+        addr_fallback = re.search(r"(หมู่|ตำบล|อำเภอ|จังหวัด)[\u0E00-\u0E7F0-9\s/]*", text_fixed)
+        data["address"] = addr_fallback.group(0).strip() if addr_fallback else ""
+
+    # =============================
+    # 🔹 5. Normalize ทุกฟิลด์
+    # =============================
+    for k in data:
+        data[k] = normalize_pred(k, data[k])
+
+    return data
+
+# ===== ROUTE: /upload_ocr =====
 @ocr_bp.route("/upload_ocr", methods=["POST"])
 def upload_ocr():
     file = request.files.get("file")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
-    allowed_ext = {".jpg", ".jpeg", ".png"}
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in allowed_ext:
+    if ext not in {".jpg", ".jpeg", ".png"}:
         return jsonify({"error": "File type not allowed"}), 400
 
-    # --- Save upload (macOS safe path) ---
-    filename = file.filename
-    BASE_DIR = Path(__file__).resolve().parents[1]  # → โฟลเดอร์ backend/
+    BASE_DIR = Path(__file__).resolve().parents[1]
     save_dir = BASE_DIR / "uploads"
     save_dir.mkdir(exist_ok=True)
     os.chmod(save_dir, 0o777)
+
+    filename = file.filename
     save_path = str(save_dir / filename)
     file.save(save_path)
 
-
-    # --- Load & preprocess ---
     img = cv2.imread(save_path)
     if img is None:
         return jsonify({"error": "Cannot read image"}), 400
+
     processed = preprocess_gaussian_otsu(img)
 
-    # --- ROI selection ---
-    if len(ROI_MAP) == 0:
-        return jsonify({"error": "ROI data is empty"}), 404
+    text = pytesseract.image_to_string(
+        processed,
+        lang="tha",
+        config="--oem 3 --psm 6"
+    )
 
-    first_key = next(iter(ROI_MAP))
-    roi_fields = ROI_MAP[first_key]
+    data = extract_fields_from_text(text)
 
-    debug_dir = Path(__file__).resolve().parents[1] / "debug_rois"
-    debug_dir.mkdir(exist_ok=True)
-
-    result_data = {}
-    for field, coords in roi_fields.items():
-        roi = crop_by_roi(processed, first_key, field)
-        if roi is None:
-            continue
-
-        cv2.imwrite(str(debug_dir / f"{field}.png"), roi)  # ✅ save preview
-
-        if field == "address":
-            config = "--oem 3 --psm 6"
-        else:
-            config = "--oem 3 --psm 7"
-
-        text = pytesseract.image_to_string(roi, lang="tha", config=config)
-        result_data[field] = normalize_pred(field, text)
-
-
-    debug_rois = {}
-    # เพิ่มตรงท้าย upload_ocr เพื่อ debug
-    if debug_rois:
-        for field, roi in debug_rois.items():
-            cv2.imwrite(f"debug_{field}.png", roi)
-        
-
-
-
-    # ✅ ส่งข้อมูลทุกฟิลด์กลับ frontend
     return jsonify({
-        "message": "OCR processed successfully!",
+        "message": "OCR (whole-image) processed successfully!",
         "filename": filename,
-        "original_image_path": save_path,
-        "processed_image_path": save_path,
-        "result": {
-            "id_number": result_data.get("id_number", ""),
-            "prefix": result_data.get("prefix", ""),
-            "first_name": result_data.get("first_name", ""),
-            "last_name": result_data.get("last_name", ""),
-            "dob": result_data.get("dob", ""),
-            "address": result_data.get("address", "")
-        }
+        "raw_text": text,
+        "result": data
     })
-
 
 @ocr_bp.route("/save_ocr", methods=["POST"])
 def save_ocr():
@@ -152,14 +154,12 @@ def save_ocr():
     if not all(k in data for k in required):
         return jsonify({"error": "Missing required fields"}), 400
 
-    # ✅ ดึง OCR ก่อนหน้า (ใช้เปรียบเทียบ)
+    # ✅ OCR เดิม (ก่อนผู้ใช้แก้)
     ocr_prev = OcrResult.query.filter_by(filename=data["filename"]).order_by(OcrResult.id.desc()).first()
 
     # ✅ บันทึก OCR หลังผู้ใช้แก้ไข
     ocr_result = OcrResult(
         filename=data["filename"],
-        original_image_path=data.get("original_image_path"),
-        processed_image_path=data.get("processed_image_path"),
         id_number=data["id_number"],
         prefix=data["prefix"],
         first_name=data["first_name"],
@@ -169,19 +169,19 @@ def save_ocr():
     )
 
     db.session.add(ocr_result)
-    db.session.commit()  # ต้อง commit ก่อนเพื่อให้มี ocr_result.id
+    db.session.commit()
 
-    # ✅ คำนวณ CER ต่อฟิลด์
+    # ✅ คำนวณ CER แยกฟิลด์
     fields = ["id_number", "prefix", "first_name", "last_name", "dob", "address"]
     field_cer = {}
     for f in fields:
-        pred = getattr(ocr_prev, f) if ocr_prev else ""
-        truth = data.get(f, "")
+        pred = getattr(ocr_prev, f) if ocr_prev else ""  # OCR เดิม
+        truth = data.get(f, "")                          # ที่ผู้ใช้แก้
         field_cer[f] = compute_cer(pred or "", truth or "")
 
-    cer_avg = round(sum(field_cer.values()) / len(field_cer), 4) if field_cer and any(field_cer.values()) else 0.0
+    cer_avg = round(sum(field_cer.values()) / len(field_cer), 4)
 
-    # ✅ บันทึก summary CER แยกใน cer_results
+    # ✅ บันทึก CER summary
     cer_summary = CerResult(
         ocr_result_id=ocr_result.id,
         filename=data["filename"],
