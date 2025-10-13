@@ -6,6 +6,8 @@ from database.models import User, OcrResult, CerResult
 from werkzeug.security import generate_password_hash, check_password_hash
 from routes.user_routes import user_bp
 from routes.ocr_routes import ocr_bp
+from flask import send_from_directory
+import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -36,6 +38,12 @@ def list_users():
     users = User.query.all()
     return jsonify([{"id": u.id, "username": u.username, "email": u.email} for u in users])
 
+# ===== เสิร์ฟรูปภาพในโฟลเดอร์ uploads =====
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    upload_dir = os.path.join(os.path.dirname(__file__), 'uploads')
+    print("[DEBUG] Serving file:", os.path.join(upload_dir, filename))
+    return send_from_directory(upload_dir, filename)
 
 if __name__ == "__main__":
     with app.app_context():

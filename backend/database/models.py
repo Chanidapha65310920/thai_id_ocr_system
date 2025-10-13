@@ -28,6 +28,7 @@ class OcrResult(db.Model):
     address = db.Column(db.Text)
     cer = db.Column(db.Float)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_draft = db.Column(db.Boolean, default=False)
 
 
 class CerResult(db.Model):

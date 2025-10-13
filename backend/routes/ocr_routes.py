@@ -47,23 +47,22 @@ def extract_fields_from_text(text):
     thai_ner = NER("thainer")
     data = {}
 
-    # --- Clean unwanted chars ---
+    # --- Clean up unwanted chars ---
     text = re.sub(r"[^\u0E00-\u0E7F0-9\s\.\/\-]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
 
     # =============================
-    # 🔹 1. หมายเลขบัตรประชาชน (13 หลัก)
+    # 🔹 1. หมายเลขบัตรประชาชน
     # =============================
     id_match = re.search(r"\b[1-8]\s?[0-9]{4}\s?[0-9]{5}\s?[0-9]{2}\s?[0-9]\b", text)
     if id_match:
-        d = re.sub(r"\s+", "", id_match.group(0))
-        data["id_number"] = d
+        data["id_number"] = re.sub(r"\s+", "", id_match.group(0))
     else:
         id_match2 = re.search(r"\d{12,}", text)
         data["id_number"] = id_match2.group(0) if id_match2 else ""
 
     # =============================
-    # 🔹 2. ใช้ NER หาคำนำหน้า / ชื่อ / นามสกุล
+    # 🔹 2. ใช้ NER หาคำนำหน้า / ชื่อ / นามสกุล (พร้อม fallback)
     # =============================
     prefix, first_name, last_name = "", "", ""
     ner_result = thai_ner.tag(text)
@@ -76,7 +75,6 @@ def extract_fields_from_text(text):
         elif tag == "SURNAME" and not last_name:
             last_name = token
 
-    # --- Fallback ด้วย Regex ---
     if not prefix or not first_name or not last_name:
         name_match = re.search(
             r"(นาย|นางสาว|นาง|น\.ส\.|นส)\s*([ก-๙]{2,})\s*([ก-๙]{2,})", text
@@ -95,7 +93,6 @@ def extract_fields_from_text(text):
     # =============================
     text_fixed = re.sub(r"ก\.ุพ\.", "ก.พ.", text)
     text_fixed = re.sub(r"เม\.ย\.", "เม.ย.", text_fixed)
-
     dob_match = re.search(
         r"(\d{1,2}\s*(ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.)\s*\d{2,4})",
         text_fixed
@@ -103,28 +100,59 @@ def extract_fields_from_text(text):
     data["dob"] = dob_match.group(1) if dob_match else ""
 
     # =============================
-    # 🔹 4. ที่อยู่ (Address) — OCR เพี้ยนทนได้
+    # 🔹 4. ที่อยู่ (ปรับปรุงใหม่ - กลยุทธ์ "นักสืบหาชิ้นส่วน")
     # =============================
-    addr_pattern = re.compile(
-        r"([หหมู่|บ้าบานเลขที่|ตำ|ทม|อำเภ|อท|จังหวัด|จ\.][\u0E00-\u0E7F0-9\s/\.]*)"
-    )
-    addr_match = addr_pattern.search(text_fixed)
-    if addr_match:
-        data["address"] = addr_match.group(0).strip()
-    else:
-        # fallback fuzzy match
-        lines = text_fixed.split()
-        keywords = ["หมู่", "ตำบล", "อำเภอ", "จังหวัด", "ต.", "อ.", "จ."]
-        for i, token in enumerate(lines):
-            for kw in keywords:
-                if L.ratio(token, kw) > 0.7:
-                    data["address"] = " ".join(lines[i:i + 10])
-                    break
-            if "address" in data:
-                break
+    address = ""
+    text_for_addr = re.sub(r"\s+", " ", text) 
+    
+    # --- Step 1: หา Anchor "ที่อยู่" เพื่อกำหนดพื้นที่ค้นหา ---
+    address_anchor = "ที่อยู่"
+    best_match_ratio = 0.6
+    best_match_start_index = -1
 
-    if "address" not in data:
-        data["address"] = ""
+    tokens = text_for_addr.split()
+    for token in tokens:
+        # ใช้ Fuzzy matching หาคำที่คล้าย "ที่อยู่" ที่สุด
+        ratio = L.ratio(token, address_anchor)
+        if ratio > best_match_ratio:
+            best_match_ratio = ratio
+            best_match_start_index = text_for_addr.find(token)
+            
+    # --- Step 2: ถ้าเจอ Anchor, สร้าง "หน้าต่างค้นหา" และเริ่มตามล่าชิ้นส่วน ---
+    if best_match_start_index != -1:
+        # กำหนดหน้าต่างค้นหาประมาณ 150 ตัวอักษรหลัง Anchor
+        search_window = text_for_addr[best_match_start_index : best_match_start_index + 150]
+        
+        # --- เตรียมข้อมูลในหน้าต่าง: แก้คำผิดที่เจอบ่อย ---
+        search_window = search_window.replace("หม่ที", "หมู่ที่").replace("ด.", "ต.").replace("ทบคลอ", "ทับคล้อ")
+
+        # --- ตามล่าหาแต่ละชิ้นส่วนด้วย Regex เฉพาะทาง ---
+        house_no_match = re.search(r"\d+[\/\d-]*", search_window)
+        moo_match = re.search(r"(?:หมู่ที่|หมู่ที|หมู่|ม\.)\s*\d+", search_window)
+        tambon_match = re.search(r"(?:ต\.?|ตำบล|แขวง)\s*[\u0E00-\u0E7F]+", search_window)
+        amphoe_match = re.search(r"(?:อ\.|อำเภอ)\s*[\u0E00-\u0E7F]+", search_window)
+        province_match = re.search(r"(?:จ\.?|จังหวัด)\s*[\u0E00-\u0E7F]+", search_window)
+        
+        # --- Step 3: ประกอบร่างชิ้นส่วนที่หาเจอ ---
+        address_parts = []
+        if house_no_match:
+            address_parts.append(house_no_match.group(0))
+        if moo_match:
+            address_parts.append(moo_match.group(0))
+        if tambon_match:
+            address_parts.append(tambon_match.group(0))
+        if amphoe_match:
+            address_parts.append(amphoe_match.group(0))
+        if province_match:
+            # นำผลลัพธ์ของจังหวัดมาตัดคำว่า "จังหวัด" หรือ "จ." ซ้ำซ้อนออก
+            clean_province = province_match.group(0).replace("จังหวัด", "จ.").strip()
+            address_parts.append(clean_province)
+            
+        # รวมทุกชิ้นส่วนและทำความสะอาดครั้งสุดท้าย
+        address = " ".join(address_parts)
+        address = re.sub(r"\s+", " ", address).strip()
+
+    data["address"] = address
 
     # =============================
     # 🔹 5. Normalize ทุกฟิลด์
@@ -134,11 +162,22 @@ def extract_fields_from_text(text):
 
     return data
 
-
+# ====== /upload_ocr ======
 # ====== /upload_ocr ======
 @ocr_bp.route("/upload_ocr", methods=["POST"])
 def upload_ocr():
     file = request.files.get("file")
+    user_id = request.form.get("user_id")  # ✅ ดึง user_id จาก frontend
+
+    # 🔹 แปลง user_id จาก string → int
+    try:
+        user_id = int(user_id) if user_id else None
+    except ValueError:
+        user_id = None
+
+    # 🔹 Debug ดูค่าที่ Flask ได้รับ
+    print(f"[DEBUG] /upload_ocr: user_id={user_id}, type={type(user_id)}")
+
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
@@ -161,7 +200,6 @@ def upload_ocr():
         return jsonify({"error": "Cannot read image"}), 400
 
     processed = preprocess_gaussian(img)
-
     processed_path = str(save_dir / f"processed_{filename}")
     cv2.imwrite(processed_path, processed)
 
@@ -172,11 +210,29 @@ def upload_ocr():
     # --- Extract fields ---
     data = extract_fields_from_text(text)
 
+    # ✅ สร้าง Draft Record (เก็บ OCR ดิบก่อนแก้)
+    from database.models import OcrResult
+    ocr_draft = OcrResult(
+        user_id=user_id,
+        filename=filename,
+        original_image_path=f"uploads/{filename}",
+        processed_image_path=f"uploads/processed_{filename}",
+        id_number=data.get("id_number"),
+        prefix=data.get("prefix"),
+        first_name=data.get("first_name"),
+        last_name=data.get("last_name"),
+        dob=data.get("dob"),
+        address=data.get("address"),
+        is_draft=bool(True),  # ✅ เก็บสถานะเป็น Draft
+    )
+    db.session.add(ocr_draft)
+    db.session.commit()
+
     return jsonify({
         "message": "OCR (Gaussian + EasyOCR) processed successfully!",
         "filename": filename,
         "raw_text": text,
-        "processed_image_path": processed_path,
+        "processed_image_path": os.path.join("uploads", f"processed_{filename}"),
         "result": data
     })
 
@@ -186,58 +242,118 @@ def upload_ocr():
 def save_ocr():
     data = request.get_json()
 
-    required = ["filename", "id_number", "prefix", "first_name", "last_name", "dob", "address"]
+    # ✅ ตรวจสอบข้อมูลที่จำเป็น
+    required = ["filename", "id_number", "prefix", "first_name", "last_name", "dob", "address", "user_id"]
     if not all(k in data for k in required):
         return jsonify({"error": "Missing required fields"}), 400
 
-    # OCR ก่อนหน้า
-    ocr_prev = OcrResult.query.filter_by(filename=data["filename"]).order_by(OcrResult.id.desc()).first()
+    filename = data["filename"]
+    user_id = data["user_id"]
 
-    # บันทึกผลใหม่
+    # ✅ หา draft (ผล OCR ดิบก่อนแก้) ที่ยังไม่ปิด
+    draft = (
+        OcrResult.query
+        .filter_by(user_id=user_id, filename=filename, is_draft=True)
+        .order_by(OcrResult.id.desc())
+        .first()
+    )
+
+    # ✅ สร้างบันทึกใหม่ (ผลที่ผู้ใช้แก้ไขแล้ว)
     ocr_result = OcrResult(
-        filename=data["filename"],
-        original_image_path=f"uploads/{data['filename']}",
-        processed_image_path=f"uploads/processed_{data['filename']}",
+        user_id=user_id,
+        filename=filename,
+        original_image_path=f"uploads/{filename}",
+        processed_image_path=f"uploads/processed_{filename}",
         id_number=data["id_number"],
         prefix=data["prefix"],
         first_name=data["first_name"],
         last_name=data["last_name"],
         dob=data["dob"],
-        address=data["address"]
+        address=data["address"],
+        is_draft=False,  # ✅ อันนี้คือผลจริง ไม่ใช่ draft
     )
     db.session.add(ocr_result)
     db.session.commit()
 
-    # คำนวณ CER
+    # ✅ คำนวณ CER เทียบกับ draft (baseline)
     fields = ["id_number", "prefix", "first_name", "last_name", "dob", "address"]
     field_cer = {}
+
     for f in fields:
-        pred = getattr(ocr_prev, f) if ocr_prev else ""
+        pred = getattr(draft, f) if draft else ""   # baseline = draft
         truth = data.get(f, "")
         field_cer[f] = compute_cer(pred or "", truth or "")
 
     cer_avg = round(sum(field_cer.values()) / len(field_cer), 4)
 
-    # บันทึก CER summary
+    # ✅ บันทึกผล CER ลงตาราง cer_results
     cer_summary = CerResult(
         ocr_result_id=ocr_result.id,
-        filename=data["filename"],
+        filename=filename,
         cer_id_number=field_cer["id_number"],
         cer_prefix=field_cer["prefix"],
         cer_first_name=field_cer["first_name"],
         cer_last_name=field_cer["last_name"],
         cer_dob=field_cer["dob"],
         cer_address=field_cer["address"],
-        cer_avg=cer_avg
+        cer_avg=cer_avg,
     )
     db.session.add(cer_summary)
+
+    # ✅ ปิดสถานะ draft (ไม่ให้ใช้ซ้ำ)
+    # if draft:
+    #     draft.is_draft = False
+
     db.session.commit()
 
     return jsonify({
         "message": "OCR + CER summary saved successfully!",
-        "filename": data["filename"],
+        "filename": filename,
         "ocr_result_id": ocr_result.id,
         "cer_avg": cer_avg,
         "fields_cer": field_cer,
-        "saved_data": data
+        "saved_data": data,
+        "processed_image_path": f"uploads/processed_{filename}",
+        "original_image_path": f"uploads/{filename}"
     })
+
+
+# ====== /get_ocr_history ======
+
+@ocr_bp.route("/get_ocr_history/<int:user_id>", methods=["GET"])
+def get_ocr_history(user_id):
+    """ดึงประวัติผล OCR ของผู้ใช้ — เรียงไฟล์เดียวกันให้อยู่คู่กัน (draft ก่อน ผลจริงทีหลัง)"""
+    results = (
+        OcrResult.query
+        .filter_by(user_id=user_id)
+        .order_by(OcrResult.filename.asc(), OcrResult.is_draft.desc(), OcrResult.created_at.asc())
+        .all()
+    )
+
+    data = []
+    for r in results:
+        cer = (
+            CerResult.query.filter_by(ocr_result_id=r.id)
+            .order_by(CerResult.id.desc())
+            .first()
+        )
+        data.append({
+            "id": r.id,
+            "filename": r.filename,
+            "id_number": r.id_number,
+            "id_number": r.id_number,
+            "prefix": r.prefix,
+            "first_name": r.first_name,
+            "last_name": r.last_name,
+            "dob": r.dob,
+            "address": r.address,
+            "is_draft": r.is_draft,
+            "created_at": r.created_at.strftime("%Y-%m-%d %H:%M"),
+            "cer_avg": cer.cer_avg if cer else None
+        })
+
+    # ✅ จัดเรียงซ้ำใน Python เพื่อความชัวร์
+    data.sort(key=lambda x: (x["filename"].lower(), 1 if x["is_draft"] else 2))
+
+    return jsonify({"history": data})
+

@@ -1,0 +1,121 @@
+/* 🌈 Navbar Container */
+.navbar {
+  position: fixed;
+  top: 3%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 1100px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(173, 216, 230, 0.5));
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+
+  padding: 12px 24px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+
+  transition: all 0.3s ease;
+}
+
+/* 🏷️ Logo */
+.navbar-left .logo {
+  display: flex;
+  align-items: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+}
+
+.navbar-left .logo:hover {
+  transform: scale(1.05);
+  transition: 0.2s ease;
+}
+
+/* 📋 Menu */
+.navbar-center .menu {
+  display: flex;
+  gap: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.menu-item a {
+  text-decoration: none;
+  color: #1e293b;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease-in-out;
+}
+
+/* Hover effect */
+.menu-item a:hover {
+  background: linear-gradient(135deg, #bae6fd, #a5f3fc);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+/* Active state */
+.menu-item.active a {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  color: white;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
+}
+
+/* 🚪 Logout Button */
+.logout-button {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.logout-button:hover {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45);
+}
+
+/* 🧭 Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    width: 90%;
+    padding: 10px 16px;
+  }
+
+  .navbar-center .menu {
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .menu-item a {
+    padding: 6px 12px;
+    font-size: 0.95rem;
+  }
+
+  .logout-button {
+    margin-top: 10px;
+  }
+}
+
+body {
+  margin-top: 80px;
+}

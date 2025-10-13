@@ -1,13 +1,52 @@
-# ไม่เอาไฟล์ environment และโฟลเดอร์ venv
+# ==========================
+# 🐍 BACKEND (Flask / Python)
+# ==========================
 venv/
 .env
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+instance/
+.mypy_cache/
+.pytest_cache/
 
-# ไม่เอาไฟล์จากระบบ macOS
-.DS_Store
-
-# ไม่เอาไฟล์ผลลัพธ์หรือภาพ
+# อัปโหลดและผลลัพธ์ OCR
 uploads/
 results/
 results_images/
+
+# ==========================
+# 🌐 FRONTEND (React / Vite)
+# ==========================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/.eslintcache
+frontend/yarn-error.log
+frontend/.env
+
+# ==========================
+# 💻 IDE / SYSTEM / OS FILES
+# ==========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# ==========================
+# 🤖 MODEL / WEIGHT FILES (OCR)
+# ==========================
+*.weights
+*.onnx
+*.pth
+*.h5
+*.pt
+*.tflite
+*.model
+*.cfg
