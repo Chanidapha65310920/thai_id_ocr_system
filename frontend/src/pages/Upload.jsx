@@ -56,7 +56,7 @@ export default function Upload() {
     <div className="flex flex-col items-center justify-start min-h-screen pt-10 pb-10 px-6">
       <div className="backdrop-blur-lg bg-white/50 border border-white/30 shadow-xl rounded-3xl p-8 w-full max-w-5xl text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">
-          📤 Upload Thai ID Card
+          📤 อัปโหลดบัตรประชาชน
         </h1>
 
         <div className="space-y-5">
@@ -74,12 +74,14 @@ export default function Upload() {
             disabled={loading}
             className={`w-full py-3 rounded-xl font-semibold transition-all shadow-md ${
               loading
-                ? "bg-gray-400 text-white cursor-not-allowed"
-                : "bg-indigo-500 text-white hover:bg-indigo-600 hover:scale-[1.02]"
+                ? "!bg-green-500 !text-white cursor-not-allowed hover:!bg-green-700 hover:scale-[1.02]"
+                : "!bg-blue-400 !text-black hover:!bg-blue-600"
             }`}
           >
-            {loading ? "⏳ กำลังประมวลผล..." : "📎 อัปโหลด & OCR"}
+            {loading ? "⏳ กำลังประมวลผล..." : "📎 ประมวลผล"}
           </button>
+
+
 
           {msg && (
             <p
@@ -118,7 +120,7 @@ export default function Upload() {
       </pre>
       <button
         onClick={handleEdit}
-        className="mt-4 w-full py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition-all shadow-md hover:scale-[1.02]"
+        className="mt-4 w-full py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-700 transition-all shadow-md hover:scale-[1.02]"
       >
         ✏️ แก้ไขข้อมูล
       </button>

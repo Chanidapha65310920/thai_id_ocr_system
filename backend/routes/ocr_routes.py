@@ -11,6 +11,9 @@ from pathlib import Path
 import Levenshtein as L
 from utils.normalizer import normalize_pred
 from pythainlp.tag import NER
+from flask import send_file
+import csv
+import io
 
 # ====== Thai NER model ======
 thai_ner = NER("thainer")
@@ -357,3 +360,45 @@ def get_ocr_history(user_id):
 
     return jsonify({"history": data})
 
+
+@ocr_bp.route("/export_csv_final/<int:user_id>", methods=["GET"])
+def export_csv_final(user_id):
+    try:
+        # ✅ ดึงเฉพาะข้อมูลหลังแก้ไขแล้ว (is_draft = 'Final')
+        results = (
+            OcrResult.query
+            .filter(OcrResult.user_id == user_id, OcrResult.is_draft == "Final")
+            .order_by(OcrResult.created_at.desc())
+            .all()
+        )
+
+        if not results:
+            return jsonify({"error": "ไม่พบข้อมูลที่ผ่านการแก้ไขแล้ว"}), 404
+
+        # ✅ สร้างไฟล์ CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Header ภาษาไทย
+        writer.writerow(["เลขบัตรประชาชน", "ชื่อ-นามสกุล", "วันเกิด", "ที่อยู่"])
+
+        for r in results:
+            full_name = f"{r.prefix or ''}{r.first_name or ''} {r.last_name or ''}".strip()
+            writer.writerow([
+                r.id_number or "",
+                full_name,
+                r.dob or "",
+                r.address or "",
+            ])
+
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode("utf-8-sig")),
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=f"ผลลัพธ์OCR_user_{user_id}.csv"
+        )
+
+    except Exception as e:
+        print("[ERROR /export_csv_final]", e)
+        return jsonify({"error": "ไม่สามารถสร้างไฟล์ CSV ได้"}), 500

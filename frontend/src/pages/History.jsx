@@ -27,6 +27,17 @@ export default function History() {
       });
   }, []);
 
+
+  const handleExportFinal = () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) {
+      alert("❌ กรุณาเข้าสู่ระบบก่อนดาวน์โหลดข้อมูล");
+      return;
+    }
+    // เปิดลิงก์ไปยัง backend เพื่อดาวน์โหลด CSV
+    window.open(`http://127.0.0.1:5000/export_csv_final/${user.id}`, "_blank");
+  };
+
   if (loading)
     return (
       <div className="flex justify-center items-center min-h-screen text-gray-600 text-lg">
@@ -41,6 +52,21 @@ export default function History() {
         <h1 className="text-3xl font-bold mb-4 text-gray-800 text-center">
           📜 ประวัติการบันทึก OCR
         </h1>
+
+        <div className="flex justify-end mb-4">
+  <button
+    onClick={handleExportFinal}
+    className="text-white px-4 py-2 rounded-lg shadow-md transition-all"
+    style={{
+      backgroundColor: "#16a34a",
+    }}
+    onMouseEnter={(e) => (e.target.style.backgroundColor = "#15803d")} // hover bg-green-700
+    onMouseLeave={(e) => (e.target.style.backgroundColor = "#16a34a")}
+  >
+    📥 ดาวน์โหลดข้อมูล (CSV)
+  </button>
+</div>
+
 
         {msg && <p className="text-red-500 mb-4 text-center">{msg}</p>}
 
