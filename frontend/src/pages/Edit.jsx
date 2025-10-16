@@ -50,7 +50,7 @@ export default function Edit() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen pt-5 pb-10 px-6">
+    <div className="min-h-screen flex flex-col items-center justify-start pt-30 px-8 bg-gradient-to-br from-indigo-200 via-blue-50 to-pink-100">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl backdrop-blur-lg bg-white/60 border border-white/30 rounded-3xl shadow-2xl p-8">
         
         {/* ===== LEFT: IMAGE PREVIEW ===== */}
@@ -78,7 +78,7 @@ export default function Edit() {
             📝 แก้ไขข้อมูล OCR
           </h1>
 
-          <div className="space-y-5">
+          <div className="space-y-2">
             {Object.entries(form).map(([key, value]) => (
               <div key={key} className="flex flex-col">
                 <label className="text-sm font-medium text-gray-700 mb-1 capitalize">

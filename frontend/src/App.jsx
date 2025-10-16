@@ -38,10 +38,10 @@ export default function App() {
         <Route
           path="/"
           element={
-            <div className="min-h-screen flex flex-col items-center justify-start pt-20 px-8 to-white">
+            <div className="min-h-screen flex flex-col items-center justify-start pt-35 px-8 bg-gradient-to-br from-indigo-200 via-blue-50 to-pink-100">
               <div className="text-center max-w-4xl">
                 <h1 className="text-5xl font-bold mb-4 text-blue-600 drop-shadow-sm">
-                  🎯 Thai ID OCR System
+                  Thai ID OCR System
                 </h1>
                 <p className="text-gray-600 text-lg mb-10">
                   ระบบสกัดข้อมูลบัตรประชาชนไทยอัตโนมัติด้วย OCR + Image
@@ -51,7 +51,7 @@ export default function App() {
                 {user ? (
                   <div className="bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
                     <h2 className="text-xl mb-4">
-                      👋 ยินดีต้อนรับ, <b>{user.username}</b>
+                      👋 ยินดีต้อนรับ, <b className="text-violet-400">{user.username}</b>
                     </h2>
                     <p className="text-gray-600 mb-6">
                       เลือกเมนูด้านบนเพื่อเริ่มใช้งานระบบ
@@ -61,26 +61,31 @@ export default function App() {
                       to="/upload"
                       className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-3 rounded-xl shadow-md transition"
                     >
-                      📄 ไปที่หน้าอัปโหลด
+                      ไปที่หน้าอัปโหลด
                     </Link>
                   </div>
                 ) : (
-                  <div className="bg-white shadow-md rounded-2xl p-10 border border-gray-100">
-                    <p className="text-lg mb-6">
-                      กรุณาเข้าสู่ระบบเพื่อใช้งานระบบ OCR
+                  <div className="bg-white shadow-md rounded-2xl p-10 border border-gray-100 text-center">
+                    <p className="text-lg mb-6 text-gray-700 font-medium">
+                      🔐 กรุณาเข้าสู่ระบบเพื่อใช้งานระบบ OCR
+                      <br />
+                      หากยังไม่มีบัญชี{" "}
+                      <span className="text-green-600 font-semibold">
+                        สามารถสมัครใหม่ได้ฟรี!
+                      </span>
                     </p>
-                    <div className="flex justify-center gap-6">
+                    <div className="flex justify-center gap-6 mt-4">
                       <Link
                         to="/login"
                         className="bg-blue-500 text-white px-6 py-3 rounded-xl hover:bg-blue-600 shadow transition"
                       >
-                        🔑 Login
+                        เข้าสู่ระบบ
                       </Link>
                       <Link
                         to="/register"
                         className="bg-green-500 text-white px-6 py-3 rounded-xl hover:bg-green-600 shadow transition"
                       >
-                        📝 Register
+                        สมัครสมาชิก
                       </Link>
                     </div>
                   </div>
@@ -103,7 +108,8 @@ export default function App() {
                 <div className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition">
                   <h3 className="font-semibold text-lg mb-2">📋 ฟีเจอร์ระบบ</h3>
                   <p className="text-gray-600 text-sm">
-                    สกัดเฉพาะข้อมูล ชื่อ-สกุล ที่อยู่ วันเกิด เลข 13 หลัก อัตโนมัติ
+                    สกัดเฉพาะข้อมูล ชื่อ-สกุล ที่อยู่ วันเกิด เลข 13 หลัก
+                    อัตโนมัติ
                   </p>
                 </div>
 

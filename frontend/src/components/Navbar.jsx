@@ -8,9 +8,12 @@ const Navbar = ({ onLogout }) => {
   const location = useLocation();
 
   const handleLogoutClick = () => {
-    localStorage.removeItem("user");
-    if (onLogout) onLogout();
-    navigate("/");
+    const confirmLogout = window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?");
+    if (confirmLogout) {
+      localStorage.removeItem("user");
+      if (onLogout) onLogout();
+      navigate("/");
+    }
   };
 
   const isActive = (path) => location.pathname === path;
@@ -32,22 +35,25 @@ const Navbar = ({ onLogout }) => {
       <div className="navbar-center">
         <ul className="menu">
           <li className={`menu-item ${isActive("/upload") ? "active" : ""}`}>
-            <Link to="/upload">📩 อัปโหลด</Link>
+            <Link to="/upload">อัปโหลด</Link>
           </li>
           {/* <li className={`menu-item ${isActive("/edit") ? "active" : ""}`}>
             <Link to="/edit">✏️ Edit</Link>
           </li> */}
           <li className={`menu-item ${isActive("/history") ? "active" : ""}`}>
-            <Link to="/history">🧾 ประวัติ</Link>
+            <Link to="/history">ประวัติ</Link>
           </li>
         </ul>
       </div>
 
       <div className="navbar-right">
-        {user && (
+        {user ? (
           <button onClick={handleLogoutClick} className="logout-button">
             👋 ออกจากระบบ
           </button>
+        ) : (
+          // 🟦 เพิ่ม div เปล่าขนาดเท่าปุ่ม logout เพื่อกันตำแหน่งขยับ
+          <div style={{ width: "130px", height: "38px" }}></div>
         )}
       </div>
     </nav>

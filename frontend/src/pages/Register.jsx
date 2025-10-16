@@ -37,10 +37,10 @@ export default function Register() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-100 via-blue-50 to-pink-50">
+    <div className="min-h-screen flex flex-col items-center justify-start pt-35 px-8 bg-gradient-to-br from-indigo-200 via-blue-50 to-pink-100">
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md border border-gray-100">
         <h2 className="text-3xl font-bold text-center text-indigo-700 mb-6">
-          🪶 Register
+          สร้างบัญชีผู้ใช้งาน
         </h2>
 
         {msg && (
@@ -51,7 +51,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1 font-medium text-gray-600">ชื่อ-นามสกุล</label>
+            <label className="block mb-1 font-medium text-gray-600">ชื่อ-นามสกุลผู้ใช้งาน</label>
             <input
               type="text"
               name="username"
@@ -64,7 +64,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block mb-1 font-medium text-gray-600">อีเมล</label>
+            <label className="block mb-1 font-medium text-gray-600">อีเมล (สำหรับเข้าสู่ระบบ)</label>
             <input
               type="email"
               name="email"
@@ -89,7 +89,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block mb-1 font-medium text-gray-600">ยืนยันรหัสผ่าน</label>
+            <label className="block mb-1 font-medium text-gray-600">ยืนยันรหัสผ่านอีกครั้ง</label>
             <input
               type="password"
               name="confirmPassword"
@@ -108,9 +108,9 @@ export default function Register() {
           </button>
 
           <p className="text-center text-sm text-gray-500 mt-2">
-            มีบัญชีอยู่แล้ว?{" "}
-            <a href="/login" className="text-indigo-600 hover:underline">
-              เข้าสู่ระบบ
+            มีบัญชีอยู่แล้วใช่ไหม?{" "}
+            <a href="/login" className="login-link">
+              คลิกเพื่อเข้าสู่ระบบ
             </a>
           </p>
         </form>

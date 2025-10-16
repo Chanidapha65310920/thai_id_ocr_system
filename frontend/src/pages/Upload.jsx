@@ -53,7 +53,7 @@ export default function Upload() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen pt-10 pb-10 px-6">
+    <div className="min-h-screen flex flex-col items-center justify-start pt-35 px-8 bg-gradient-to-br from-indigo-200 via-blue-50 to-pink-100">
       <div className="backdrop-blur-lg bg-white/50 border border-white/30 shadow-xl rounded-3xl p-8 w-full max-w-5xl text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">
           📤 อัปโหลดบัตรประชาชน

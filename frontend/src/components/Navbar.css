@@ -10,33 +10,46 @@
   justify-content: space-between;
   align-items: center;
 
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(173, 216, 230, 0.5));
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(165, 205, 255, 0.824);
 
-  padding: 12px 24px;
+
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+
+  padding: 12px 15px;
   border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 14px 20px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(255, 255, 255, 0.4) inset;
   z-index: 1000;
 
   transition: all 0.3s ease;
+}
+
+.navbar:hover {
+  box-shadow:
+    0 18px 38px rgba(0, 0, 0, 0.16),
+    0 5px 10px rgba(255, 255, 255, 0.45) inset;
 }
 
 /* 🏷️ Logo */
 .navbar-left .logo {
   display: flex;
   align-items: center;
-  font-size: 1.6rem;
+  gap: 10px;
+  font-size: 1.65rem; /* เพิ่มเล็กน้อย */
   font-weight: 700;
-  color: #1e293b;
+  color: #0f172a;
   text-decoration: none;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  transition: all 0.25s ease;
 }
 
 .navbar-left .logo:hover {
-  transform: scale(1.05);
-  transition: 0.2s ease;
+  transform: scale(1.2);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
 }
+
 
 /* 📋 Menu */
 .navbar-center .menu {
@@ -53,69 +66,67 @@
   text-decoration: none;
   color: #1e293b;
   font-weight: 500;
-  padding: 8px 18px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 9px 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.25s ease-in-out;
 }
 
 /* Hover effect */
 .menu-item a:hover {
-  background: linear-gradient(135deg, #bae6fd, #a5f3fc);
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  background: linear-gradient(135deg, #8bc5ff, #2188ee);
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 5px 10px rgba(37, 99, 235, 0.45);
 }
 
 /* Active state */
 .menu-item.active a {
-  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  background: linear-gradient(135deg, #67a8ff, #3b82f6);
   color: white;
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
 }
 
 /* 🚪 Logout Button */
 .logout-button {
-  background: linear-gradient(135deg, #f87171, #ef4444);
+  background: linear-gradient(135deg, #ff8b94, #f65151);
   color: white;
   border: none;
-  padding: 8px 18px;
-  border-radius: 14px;
+  padding: 9px 20px;
+  border-radius: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease-in-out;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 3px 10px rgba(255, 85, 85, 0.35);
 }
 
 .logout-button:hover {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.45);
+  background: linear-gradient(135deg, #ff5f5f, #e54646);
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 5px 14px rgba(255, 85, 85, 0.5);
 }
 
 /* 🧭 Responsive */
 @media (max-width: 768px) {
   .navbar {
     flex-direction: column;
-    width: 90%;
-    padding: 10px 16px;
+    width: 92%;
+    padding: 12px 18px;
   }
 
   .navbar-center .menu {
-    gap: 12px;
-    margin-top: 8px;
+    gap: 14px;
+    margin-top: 10px;
   }
 
   .menu-item a {
-    padding: 6px 12px;
+    padding: 7px 14px;
     font-size: 0.95rem;
   }
 
   .logout-button {
-    margin-top: 10px;
+    margin-top: 12px;
   }
 }
 
-body {
-  margin-top: 80px;
-}

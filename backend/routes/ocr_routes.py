@@ -402,3 +402,29 @@ def export_csv_final(user_id):
     except Exception as e:
         print("[ERROR /export_csv_final]", e)
         return jsonify({"error": "ไม่สามารถสร้างไฟล์ CSV ได้"}), 500
+
+
+
+@ocr_bp.route("/get_cer_details/<int:ocr_id>", methods=["GET"])
+def get_cer_details(ocr_id):
+    try:
+        cer_result = CerResult.query.filter_by(ocr_result_id=ocr_id).first()
+        if not cer_result:
+            return jsonify({"error": "ไม่พบข้อมูล CER สำหรับรายการนี้"}), 404
+
+        data = {
+    "id_number_cer": cer_result.cer_id_number,
+    "prefix_cer": cer_result.cer_prefix,
+    "first_name_cer": cer_result.cer_first_name,
+    "last_name_cer": cer_result.cer_last_name,
+    "dob_cer": cer_result.cer_dob,
+    "address_cer": cer_result.cer_address,
+    "cer_avg": round(cer_result.cer_avg or 0, 4),
+}
+
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        print("[ERROR /get_cer_details]", e)
+        return jsonify({"error": "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์"}), 500

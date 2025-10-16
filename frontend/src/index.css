@@ -25,7 +25,7 @@ body {
 
 /* 🔹 ลิงก์ */
 a {
-  color: #4f46e5;
+  color: #f6f6f6;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.2s ease-in-out;
@@ -33,6 +33,17 @@ a {
 a:hover {
   color: #3730a3;
 }
+
+a.login-link {
+  color: #0cbd27e4 !important; /* red-500 */
+  font-weight: 600;
+}
+
+a.login-link:hover {
+  color: #129a10 !important; /* red-600 */
+  text-decoration: underline;
+}
+
 
 /* 🔹 ปุ่ม */
 button {
